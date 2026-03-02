@@ -20,11 +20,12 @@ export function generateToonDescription<TContext>(
     name: string,
     description: string | undefined,
     hasGroup: boolean,
+    discriminator = 'action',
 ): string {
     const lines: string[] = [];
 
-    // Layer 1: Tool summary (always human-readable)
-    lines.push(description || name);
+    // Layer 1: Tool summary + dispatch instruction (always human-readable)
+    lines.push(`${description || name}. Select operation via the \`${discriminator}\` parameter.`);
     lines.push('');
 
     // Layer 2: Action metadata in TOON tabular format

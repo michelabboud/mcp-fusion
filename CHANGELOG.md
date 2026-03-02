@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.4] - 2026-03-02
+
+### Improved
+
+- **Grouped tool descriptions now include dispatch instructions** — AI agents seeing a grouped tool (e.g., `users` with actions `get_me`, `get_me_top_artists`) now receive a clear instruction: `Select operation via the \`action\` parameter.` This fixes discoverability issues where AI clients could see the action names listed but didn't know they needed to pass `{ "action": "get_me_top_artists" }` to invoke a specific operation. Applies to both standard and TOON description generators.
+
+---
+
 ## [3.1.3] - 2026-03-02
 
 ### Fixed

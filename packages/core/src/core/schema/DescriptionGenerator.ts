@@ -17,10 +17,11 @@ export function generateDescription<TContext>(
     name: string,
     description: string | undefined,
     hasGroup: boolean,
+    discriminator = 'action',
 ): string {
     const lines: string[] = [];
 
-    // Layer 1: Tool description + action/module summary
+    // Layer 1: Tool description + action/module summary + dispatch instruction
     if (hasGroup) {
         const groups = getGroupSummaries(actions);
         const moduleList = groups
@@ -28,12 +29,14 @@ export function generateDescription<TContext>(
             .join(' | ');
         lines.push(
             `${description || name}. ` +
+            `Select operation via the \`${discriminator}\` parameter. ` +
             `Modules: ${moduleList}`
         );
     } else {
         const actionNames = actions.map(a => a.key);
         lines.push(
             `${description || name}. ` +
+            `Select operation via the \`${discriminator}\` parameter. ` +
             `Actions: ${actionNames.join(', ')}`
         );
     }
