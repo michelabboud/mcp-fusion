@@ -78,6 +78,7 @@ export class ToolRegistry<TContext = void> {
     private readonly _builders = new Map<string, ToolBuilder<TContext>>();
     private _debug?: DebugObserverFn;
     private _tracer?: FusionTracer;
+    private _telemetrySink?: TelemetrySink;
 
     /**
      * Register a single tool builder.
@@ -104,6 +105,9 @@ export class ToolRegistry<TContext = void> {
         }
         builder.buildToolDefinition();
         this._builders.set(name, builder);
+
+        // Propagate active observability features to the new builder (Bug #12)
+        this._propagateObservability(builder);
     }
 
     /**
@@ -348,10 +352,27 @@ export class ToolRegistry<TContext = void> {
      * @param sink - A {@link TelemetrySink} from `startServer()` or `TelemetryBus`
      */
     enableTelemetry(sink: TelemetrySink): void {
+        this._telemetrySink = sink;
         for (const builder of this._builders.values()) {
             if ('telemetry' in builder && typeof (builder as { telemetry: unknown }).telemetry === 'function') {
                 (builder as { telemetry: (s: TelemetrySink) => void }).telemetry(sink);
             }
+        }
+    }
+
+    /**
+     * Propagate active debug/tracing/telemetry to a newly registered builder.
+     * @internal
+     */
+    private _propagateObservability(builder: ToolBuilder<TContext>): void {
+        if (this._debug && 'debug' in builder && typeof (builder as { debug: unknown }).debug === 'function') {
+            (builder as { debug: (fn: DebugObserverFn) => void }).debug(this._debug);
+        }
+        if (this._tracer && 'tracing' in builder && typeof (builder as { tracing: unknown }).tracing === 'function') {
+            (builder as { tracing: (t: FusionTracer) => void }).tracing(this._tracer);
+        }
+        if (this._telemetrySink && 'telemetry' in builder && typeof (builder as { telemetry: unknown }).telemetry === 'function') {
+            (builder as { telemetry: (s: TelemetrySink) => void }).telemetry(this._telemetrySink);
         }
     }
 }

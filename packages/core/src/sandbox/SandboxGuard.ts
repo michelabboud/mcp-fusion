@@ -39,6 +39,7 @@ const SUSPICIOUS_PATTERNS: ReadonlyArray<{ pattern: RegExp; reason: string }> = 
     { pattern: /\bimport\s*\(/, reason: 'Dynamic import() is not available in the sandbox.' },
     { pattern: /\bimport\s+/, reason: 'ES module imports are not available in the sandbox.' },
     { pattern: /\brequire\s*\(/, reason: 'require() is not available in the sandbox.' },
+    { pattern: /^\s*async\b/, reason: 'Async functions are not supported in the sandbox. The sandbox uses synchronous JSON.stringify(fn(input)) — an async function would serialize to \'{}\'. Use a synchronous function instead.' },
 ];
 
 /**
@@ -50,6 +51,8 @@ const FUNCTION_PATTERNS: ReadonlyArray<RegExp> = [
     /^\s*[a-zA-Z_$]\w*\s*=>/,       // x => ...
     /^\s*function\s*\(/,             // function(x) { ... }
     /^\s*function\s+\w+\s*\(/,       // function name(x) { ... }
+    // Async patterns kept for shape recognition — SUSPICIOUS_PATTERNS
+    // will reject them before they reach execution (Bug #16)
     /^\s*async\s+\(.*\)\s*=>/s,      // async (x) => ...
     /^\s*async\s+function\s*\(/,     // async function(x) { ... }
     /^\s*async\s+[a-zA-Z_$]\w*\s*=>/, // async x => ...

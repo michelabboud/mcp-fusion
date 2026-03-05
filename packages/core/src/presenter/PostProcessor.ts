@@ -110,11 +110,11 @@ export function postProcessResult(
             } as any);
 
             // Extract rules from the built response text content
-            // Rules are embedded as [SYSTEM_RULES] blocks by the Presenter
+            // Rules are embedded as <domain_rules> XML blocks by the ResponseBuilder
             const rulesFromResponse: string[] = [];
             for (const c of response.content) {
                 if ('text' in c && typeof c.text === 'string') {
-                    const match = c.text.match(/\[SYSTEM_RULES\]\n([\s\S]*?)(?:\n\n|$)/);
+                    const match = c.text.match(/<domain_rules>\n([\s\S]*?)\n<\/domain_rules>/);
                     if (match) {
                         rulesFromResponse.push(...match[1]!.split('\n').filter(Boolean).map(r => r.replace(/^- /, '')));
                     }

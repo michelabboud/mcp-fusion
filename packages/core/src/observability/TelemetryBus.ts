@@ -475,14 +475,24 @@ export async function createTelemetryBus(config?: TelemetryBusConfig): Promise<T
     // Register cleanup on process exit signals
     const exitHandler = (): void => { cleanup(); };
     process.on('exit', exitHandler);
-    process.on('SIGINT', exitHandler);
-    process.on('SIGTERM', exitHandler);
+
+    // Use process.once for SIGINT/SIGTERM and re-emit the signal after cleanup
+    // so the process actually terminates (Bug #15)
+    const sigHandler = (signal: NodeJS.Signals): void => {
+        cleanup();
+        process.kill(process.pid, signal);
+    };
+    process.once('SIGINT', () => sigHandler('SIGINT'));
+    process.once('SIGTERM', () => sigHandler('SIGTERM'));
 
     // ── Close Method ──────────────────────────────────────
     async function close(): Promise<void> {
         process.removeListener('exit', exitHandler);
-        process.removeListener('SIGINT', exitHandler);
-        process.removeListener('SIGTERM', exitHandler);
+        // Signal handlers were registered with process.once, so they
+        // auto-remove after firing. Remove them explicitly only if
+        // close() is called before a signal arrives.
+        process.removeListener('SIGINT', sigHandler as NodeJS.SignalsListener);
+        process.removeListener('SIGTERM', sigHandler as NodeJS.SignalsListener);
         cleanup();
     }
 

@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.8] - 2026-03-05
+
+### Fixed
+
+- **Tools registered after `enableDebug()`/`enableTracing()` are not instrumented (Bug #12)** — `enableDebug()`, `enableTracing()`, and `enableTelemetry()` only iterated currently registered builders. New builders added via `register()` were never instrumented. Fixed by adding `_propagateObservability()` called from `register()`, and storing the telemetry sink in `_telemetrySink`.
+
+- **`FluentSchemaHelpers.default()` is text-only — doesn't mark field as optional (Bug #13)** — `.default(value)` on FluentString/FluentNumber/FluentBoolean only appended `(default: ...)` to the description text. The LLM would see "default: 10", omit the field, and Zod validation would fail. Fixed by auto-setting `_optional = true` when `.default()` is called.
+
+- **PostProcessor regex doesn't match `<domain_rules>` format (Bug #14)** — The telemetry regex searched for `[SYSTEM_RULES]` but ResponseBuilder now emits rules inside `<domain_rules>` XML tags. Rules were never captured for telemetry. Fixed regex to `/<domain_rules>\n([\s\S]*?)\n<\/domain_rules>/`.
+
+- **`TelemetryBus` SIGINT/SIGTERM handlers prevent process termination (Bug #15)** — Using `process.on('SIGINT')` replaced the default termination behavior. The exit handler only called `cleanup()` but never terminated the process. Fixed by using `process.once()` and re-emitting the signal via `process.kill(process.pid, signal)` after cleanup.
+
+- **`SandboxGuard` accepts async functions that silently produce empty results (Bug #16)** — The sandbox wraps code with `JSON.stringify(__fn__(__input__))`. For async functions, `__fn__()` returns a Promise, and `JSON.stringify(promise)` produces `'{}'`. Fixed by adding `/^\s*async\b/` to `SUSPICIOUS_PATTERNS` with a descriptive error explaining why async is not supported.
+
+### Test Suite
+
+- **22 new regression tests** in `MediumBugs-12-13-14-15-16.test.ts` — ToolRegistry late-registration propagation (5 tests), FluentSchemaHelpers default-to-optional (6 tests), PostProcessor regex (4 tests), TelemetryBus signal handling (1 test), SandboxGuard async rejection (6 tests).
+- **Updated** existing SandboxGuard tests to expect async rejection (3 tests corrected).
+- **Updated** DebugObserver test to expect late-registered tools to receive debug events.
+
 ## [3.1.7] - 2026-03-05
 
 ### Fixed

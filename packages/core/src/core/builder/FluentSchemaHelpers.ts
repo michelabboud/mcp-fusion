@@ -166,8 +166,8 @@ export class FluentString implements FluentDescriptor {
     }
     /** Set human-readable description */
     describe(text: string): this { this._desc = text; return this; }
-    /** Set default value (appended to description for LLM) */
-    default(value: string): this { this._default = value; return this; }
+    /** Set default value (appended to description for LLM, auto-marks as optional) */
+    default(value: string): this { this._default = value; this._optional = true; return this; }
     /** Add a single LLM few-shot example (AI-First DX) */
     example(value: string): this {
         if (!this._examples) this._examples = [];
@@ -219,8 +219,8 @@ export class FluentNumber implements FluentDescriptor {
     }
     /** Set human-readable description */
     describe(text: string): this { this._desc = text; return this; }
-    /** Set default value (appended to description for LLM) */
-    default(value: number): this { this._default = value; return this; }
+    /** Set default value (appended to description for LLM, auto-marks as optional) */
+    default(value: number): this { this._default = value; this._optional = true; return this; }
     /** Add a single LLM few-shot example (AI-First DX) */
     example(value: number): this {
         if (!this._examples) this._examples = [];
@@ -262,8 +262,8 @@ export class FluentBoolean implements FluentDescriptor {
     }
     /** Set human-readable description */
     describe(text: string): this { this._desc = text; return this; }
-    /** Set default value (appended to description for LLM) */
-    default(value: boolean): this { this._default = value; return this; }
+    /** Set default value (appended to description for LLM, auto-marks as optional) */
+    default(value: boolean): this { this._default = value; this._optional = true; return this; }
 
     toDescriptor(): BooleanParamDef {
         const desc = this._default !== undefined

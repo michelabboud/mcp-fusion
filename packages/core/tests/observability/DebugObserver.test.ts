@@ -799,7 +799,7 @@ describe('Adversarial & edge cases', () => {
         expect(events2.length).toBeGreaterThan(0);
     });
 
-    it('should NOT auto-debug tools registered AFTER enableDebug', async () => {
+    it('should auto-debug tools registered AFTER enableDebug (Bug #12 fix)', async () => {
         const events: DebugEvent[] = [];
 
         const registry = new ToolRegistry<void>();
@@ -810,7 +810,7 @@ describe('Adversarial & edge cases', () => {
 
         registry.enableDebug(createDebugObserver((e) => events.push(e)));
 
-        // Register AFTER enableDebug
+        // Register AFTER enableDebug — should now also receive debug events
         const after = createTool<void>('after')
             .action({ name: 'run', handler: async () => success('after') });
         registry.register(after);
@@ -821,12 +821,12 @@ describe('Adversarial & edge cases', () => {
 
         const beforeCount = events.length;
 
-        // "after" does NOT get debug events (registered after enableDebug)
+        // "after" NOW also gets debug events (Bug #12 fixed)
         await registry.routeCall(undefined, 'after', { action: 'run' });
-        expect(events.filter(e => e.tool === 'after')).toHaveLength(0);
+        expect(events.filter(e => e.tool === 'after').length).toBeGreaterThan(0);
 
-        // Total events should be same as before (only added by "before" tool)
-        expect(events.length).toBe(beforeCount);
+        // Total events should have grown (both tools emit)
+        expect(events.length).toBeGreaterThan(beforeCount);
     });
 
     it('should handle concurrent registry calls with debug correctly', async () => {

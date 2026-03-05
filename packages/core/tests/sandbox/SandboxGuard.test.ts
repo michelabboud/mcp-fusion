@@ -61,19 +61,22 @@ describe('SandboxGuard: Valid Code', () => {
         expect(result.ok).toBe(true);
     });
 
-    it('should accept async arrow function', () => {
+    it('should reject async arrow function (Bug #16 — async produces empty result in sandbox)', () => {
         const result = validateSandboxCode('async (data) => data.length');
-        expect(result.ok).toBe(true);
+        expect(result.ok).toBe(false);
+        expect(result.violation).toContain('Async');
     });
 
-    it('should accept async function expression', () => {
+    it('should reject async function expression (Bug #16)', () => {
         const result = validateSandboxCode('async function(data) { return data.length; }');
-        expect(result.ok).toBe(true);
+        expect(result.ok).toBe(false);
+        expect(result.violation).toContain('Async');
     });
 
-    it('should accept async single-param arrow', () => {
+    it('should reject async single-param arrow (Bug #16)', () => {
         const result = validateSandboxCode('async data => data.length');
-        expect(result.ok).toBe(true);
+        expect(result.ok).toBe(false);
+        expect(result.violation).toContain('Async');
     });
 
     it('should accept destructured params', () => {
