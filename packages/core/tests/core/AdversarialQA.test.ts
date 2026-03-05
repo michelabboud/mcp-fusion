@@ -825,7 +825,8 @@ describe('QA: ToolRegistry Contract', () => {
         const result = await registry.routeCall(undefined as any, 'ghost', { action: 'a' });
         expect(result.isError).toBe(true);
         expect(result.content[0].text).toContain('UNKNOWN_TOOL');
-        expect(result.content[0].text).toContain('only_one');
+        // Should NOT leak registered tool names to the LLM
+        expect(result.content[0].text).not.toContain('only_one');
     });
 
     it('registerAll should register multiple builders at once', () => {

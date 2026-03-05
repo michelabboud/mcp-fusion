@@ -227,7 +227,7 @@ describe('Security: Error Message Information Leakage', () => {
         expect(result.content[0].text).toContain('create');
     });
 
-    it('unknown tool in registry should list available tools (intentional for LLM)', async () => {
+    it('unknown tool in registry should NOT leak tool names to the LLM', async () => {
         const registry = new ToolRegistry();
         registry.register(
             new GroupedToolBuilder('users')
@@ -240,8 +240,9 @@ describe('Security: Error Message Information Leakage', () => {
 
         const result = await registry.routeCall(undefined as any, 'admin', {});
         expect(result.isError).toBe(true);
-        expect(result.content[0].text).toContain('users');
-        expect(result.content[0].text).toContain('billing');
+        // Must NOT leak registered tool names (security fix)
+        expect(result.content[0].text).not.toContain('users');
+        expect(result.content[0].text).not.toContain('billing');
     });
 });
 
@@ -398,7 +399,7 @@ describe('Security: Context Pollution', () => {
 // ============================================================================
 
 describe('Security: Registry Enumeration', () => {
-    it('routeCall error reveals registered tool names (by design for LLM)', async () => {
+    it('routeCall error no longer reveals registered tool names (security fix)', async () => {
         const registry = new ToolRegistry();
         const secretTools = ['admin_panel', 'internal_debug', 'user_management'];
 
@@ -412,10 +413,9 @@ describe('Security: Registry Enumeration', () => {
         const result = await registry.routeCall(undefined as any, 'probe', {});
         expect(result.isError).toBe(true);
 
-        // In MCP context, this is BY DESIGN — the LLM needs to know available tools
-        // But this test documents it explicitly so the team knows
+        // Tool names must NOT be leaked — use tools/list for discovery
         for (const name of secretTools) {
-            expect(result.content[0].text).toContain(name);
+            expect(result.content[0].text).not.toContain(name);
         }
     });
 

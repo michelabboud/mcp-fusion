@@ -1003,8 +1003,8 @@ describe('Integration Sad Path: Routing Failures', () => {
         const result = await server.callTool('ghost_tool', { action: 'anything' });
         expect(result.isError).toBe(true);
         expect(result.content[0].text).toContain('UNKNOWN_TOOL');
-        // Should suggest available tools
-        expect(result.content[0].text).toContain('users');
+        // Should NOT leak tool names — use tools/list for discovery
+        expect(result.content[0].text).not.toContain('users');
     });
 
     it('should return actionable error for unknown action on known tool', async () => {

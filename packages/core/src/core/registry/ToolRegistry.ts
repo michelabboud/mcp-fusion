@@ -220,8 +220,7 @@ export class ToolRegistry<TContext = void> {
             }
             return toolError('UNKNOWN_TOOL', {
                 message: `Tool "${name}" does not exist.`,
-                suggestion: 'Check the available tools and call a valid one.',
-                availableActions: Array.from(this._builders.keys()),
+                suggestion: 'Check the available tools via tools/list and call a valid one.',
             });
         }
         return builder.execute(ctx, args, progressSink, signal);

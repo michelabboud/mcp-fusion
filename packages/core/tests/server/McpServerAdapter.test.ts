@@ -243,8 +243,9 @@ describe('MCP Server Adapter: tools/call', () => {
 
         expect(result.isError).toBe(true);
         expect(result.content[0].text).toContain('UNKNOWN_TOOL');
-        expect(result.content[0].text).toContain('users');
-        expect(result.content[0].text).toContain('billing');
+        // Should NOT leak registered tool names (security fix)
+        expect(result.content[0].text).not.toContain('users');
+        expect(result.content[0].text).not.toContain('billing');
     });
 
     it('should handle missing arguments gracefully', async () => {

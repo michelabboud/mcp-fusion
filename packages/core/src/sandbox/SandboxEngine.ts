@@ -195,6 +195,8 @@ export class SandboxEngine {
     private _isolate: any; // ivm.Isolate
     private _disposed = false;
     private _telemetry?: TelemetrySink;
+    /** Number of in-flight execute() calls sharing the isolate. */
+    private _activeExecutions = 0;
 
     constructor(config?: SandboxConfig) {
         this._timeout = config?.timeout ?? DEFAULT_TIMEOUT_MS;
@@ -280,15 +282,20 @@ export class SandboxEngine {
 
         const ivm = getIvm();
         const isolate = this._isolate;
+        this._activeExecutions++;
 
         // ── Step 3: Wire abort kill-switch ──────────────
-        // When the signal fires, we call isolate.dispose() which
-        // immediately kills the V8 C++ threads. The _ensureIsolate()
-        // method will recreate a fresh isolate on the next call.
+        // When the signal fires and this is the ONLY execution in
+        // progress, we call isolate.dispose() to kill V8 instantly.
+        // When other executions share the same isolate, we only set
+        // the `aborted` flag — the script will still terminate at
+        // its timeout boundary, preventing collateral disposal.
         let aborted = false;
         const onAbort = signal ? () => {
             aborted = true;
-            try { isolate.dispose(); } catch { /* may already be dead */ }
+            if (this._activeExecutions <= 1) {
+                try { isolate.dispose(); } catch { /* may already be dead */ }
+            }
         } : undefined;
 
         if (signal && onAbort) {
@@ -323,13 +330,16 @@ export class SandboxEngine {
             const executionMs = performance.now() - startMs;
 
             // ── Step 5: Output size guard ───────────────
-            if (typeof rawResult === 'string' && rawResult.length > this._maxOutputBytes) {
-                return {
-                    ok: false,
-                    error: `Output size (${rawResult.length} bytes) exceeds limit (${this._maxOutputBytes} bytes). ` +
-                        'Use more selective filters to reduce the result set.',
-                    code: 'OUTPUT_TOO_LARGE',
-                };
+            if (typeof rawResult === 'string') {
+                const outputByteLength = new TextEncoder().encode(rawResult).byteLength;
+                if (outputByteLength > this._maxOutputBytes) {
+                    return {
+                        ok: false,
+                        error: `Output size (${outputByteLength} bytes) exceeds limit (${this._maxOutputBytes} bytes). ` +
+                            'Use more selective filters to reduce the result set.',
+                        code: 'OUTPUT_TOO_LARGE',
+                    };
+                }
             }
 
             // ── Step 6: Parse result ────────────────────
@@ -368,6 +378,8 @@ export class SandboxEngine {
             try { inputCopy?.release(); } catch { /* already released or isolate dead */ }
             try { script?.release(); } catch { /* already released or isolate dead */ }
             try { context?.release(); } catch { /* already released or isolate dead */ }
+
+            this._activeExecutions--;
         }
     }
 

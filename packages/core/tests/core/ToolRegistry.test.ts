@@ -51,7 +51,7 @@ describe('ToolRegistry', () => {
         expect(result.content[0].text).toBe('tasks');
     });
 
-    it('should error on unknown tool with available list', async () => {
+    it('should error on unknown tool without leaking tool names', async () => {
         const builder = new GroupedToolBuilder('task')
             .action({ name: 'list', handler: dummyHandler });
         registry.register(builder);
@@ -59,7 +59,8 @@ describe('ToolRegistry', () => {
         const result = await registry.routeCall(undefined as any, 'nonexistent', { action: 'list' });
         expect(result.isError).toBe(true);
         expect(result.content[0].text).toContain('UNKNOWN_TOOL');
-        expect(result.content[0].text).toContain('task');
+        // Should NOT leak registered tool names to the LLM
+        expect(result.content[0].text).not.toContain('task');
     });
 
     it('should clear all registrations', () => {

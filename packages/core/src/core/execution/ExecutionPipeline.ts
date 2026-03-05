@@ -113,7 +113,15 @@ export function validateArgs<TContext>(
 
     // Mutate directly — zero-copy re-injection of discriminator
     const validated = result.data as Record<string, unknown>;
-    validated[execCtx.discriminator] = resolved.discriminatorValue;
+    // Guard against prototype-pollution via poisoned discriminator names
+    const disc = execCtx.discriminator;
+    if (disc === '__proto__' || disc === 'constructor' || disc === 'prototype') {
+        return fail({
+            content: [{ type: 'text', text: `Invalid discriminator name: "${disc}".` }],
+            isError: true,
+        });
+    }
+    validated[disc] = resolved.discriminatorValue;
     return succeed({ validated, selectFields });
 }
 

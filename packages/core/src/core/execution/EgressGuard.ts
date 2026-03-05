@@ -180,15 +180,20 @@ function byteLength(str: string): number {
 
 /**
  * Truncate a string to fit within a byte limit.
- * Respects multi-byte UTF-8 character boundaries.
+ * Respects multi-byte UTF-8 character boundaries by backtracking
+ * from the cut point to avoid producing U+FFFD replacement characters.
  */
 function truncateToByteLimit(str: string, maxBytes: number): string {
     const encoded = encoder.encode(str);
     if (encoded.byteLength <= maxBytes) return str;
 
-    // Slice at byte boundary, then decode back to string
-    // TextDecoder with 'fatal: false' replaces incomplete sequences
-    const sliced = encoded.slice(0, maxBytes);
+    // Backtrack from the byte boundary to a valid UTF-8 sequence start.
+    // UTF-8 continuation bytes have the pattern 10xxxxxx (0x80..0xBF).
+    let end = maxBytes;
+    while (end > 0 && ((encoded[end] ?? 0) & 0xC0) === 0x80) {
+        end--;
+    }
+    const sliced = encoded.slice(0, end);
     return decoder.decode(sliced);
 }
 

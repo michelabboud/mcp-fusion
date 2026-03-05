@@ -41,6 +41,9 @@ export interface JwtVerifierConfig {
     /** PEM-encoded public key for RS256/ES256. */
     readonly publicKey?: string;
 
+    /** Algorithm for public key verification (e.g. 'RS256', 'ES256', 'ES384', 'ES512'). Default: 'RS256'. */
+    readonly algorithm?: string;
+
     /** Expected issuer (`iss` claim). */
     readonly issuer?: string | string[];
 
@@ -181,7 +184,7 @@ export class JwtVerifier {
         } else if (this._config.publicKey) {
             // jose importSPKI for PEM keys
             const jose = await import('jose');
-            key = await jose.importSPKI(this._config.publicKey, 'RS256');
+            key = await jose.importSPKI(this._config.publicKey, this._config.algorithm ?? 'RS256');
         } else if (this._config.secret) {
             const encoder = new TextEncoder();
             key = encoder.encode(this._config.secret);

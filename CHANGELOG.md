@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.17] - 2026-03-05
+
+### Fixed
+
+- `SandboxEngine` abort handler no longer disposes the shared isolate when concurrent executions are in flight — prevents collateral `'Isolate was disposed'` errors misclassified as `MEMORY`
+- `SandboxEngine` output size guard now uses UTF-8 byte length (`TextEncoder`) instead of `.length` (UTF-16 code units) — correctly rejects CJK/emoji output that exceeds `maxOutputBytes`
+- `ExecutionPipeline` discriminator re-injection now guards against `__proto__`, `constructor`, and `prototype` names — prevents prototype pollution via poisoned discriminator configuration
+- `EgressGuard` byte-level truncation now backtrack to a valid UTF-8 character boundary instead of producing U+FFFD replacement characters for incomplete multi-byte sequences
+- `ToolRegistry.routeCall` no longer leaks all registered tool names in the "unknown tool" error response — prevents exposing tools hidden by tag-based filtering; suggests `tools/list` instead
+- `JwtVerifier` now accepts an `algorithm` field in `JwtVerifierConfig` for public key verification — no longer hardcoded to `RS256`, enabling ES256/ES384/ES512 elliptic curve keys
+
 ## [3.1.16] - 2026-03-05
 
 ### Fixed

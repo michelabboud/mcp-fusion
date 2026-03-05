@@ -180,5 +180,5 @@ export function isToolResponse(value: unknown): value is ToolResponse {
     if (content.length === 0) return true;
     // First element must have a string `type` property
     const first = content[0] as Record<string, unknown> | undefined;
-    return first != null && typeof first.type === 'string';
+    return first != null && typeof first['type'] === 'string';
 }
