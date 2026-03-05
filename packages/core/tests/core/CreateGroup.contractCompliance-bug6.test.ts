@@ -157,7 +157,7 @@ describe('Bug #6 — createGroup.execute() contract compliance', () => {
 
     // ── Strict schema: unknown fields cause validation error, not crash ──
 
-    it('unknown fields fail strict schema (returns error, never throws)', async () => {
+    it('unknown fields are stripped by default (consumer schema policy respected)', async () => {
         const group = createGroup({
             name: 'api',
             actions: {
@@ -168,14 +168,15 @@ describe('Bug #6 — createGroup.execute() contract compliance', () => {
             },
         });
 
+        // Unknown fields should be silently stripped by Zod's default policy
         const result = await group.execute(undefined as never, 'call', {
             endpoint: '/users',
             hackField: 'malicious',
             anotherUnknown: 123,
         });
 
-        expect(result.isError).toBe(true);
-        expect(result.content[0]?.text).toContain('Validation failed');
+        expect(result.isError).toBeUndefined();
+        expect(result.content[0]?.text).toContain('/users');
     });
 
     // ── Happy path: valid input still works ──
@@ -252,7 +253,7 @@ describe('Bug #6 — createGroup.execute() contract compliance', () => {
 
     // ── Bonus #23: strict schemas pre-computed ──
 
-    it('strict schema is applied consistently across multiple calls', async () => {
+    it('unknown fields are stripped consistently across multiple calls', async () => {
         const group = createGroup({
             name: 'test',
             actions: {
@@ -263,7 +264,8 @@ describe('Bug #6 — createGroup.execute() contract compliance', () => {
             },
         });
 
-        // Call multiple times with unknown fields — all should fail consistently
+        // Call multiple times with unknown fields — all should succeed
+        // because Zod strips unknown fields by default
         const results = await Promise.all([
             group.execute(undefined as never, 'op', { x: 1, extra: 'a' }),
             group.execute(undefined as never, 'op', { x: 2, extra: 'b' }),
@@ -271,8 +273,7 @@ describe('Bug #6 — createGroup.execute() contract compliance', () => {
         ]);
 
         for (const r of results) {
-            expect(r.isError).toBe(true);
-            expect(r.content[0]?.text).toContain('Validation failed');
+            expect(r.isError).toBeUndefined();
         }
 
         // Valid calls still work

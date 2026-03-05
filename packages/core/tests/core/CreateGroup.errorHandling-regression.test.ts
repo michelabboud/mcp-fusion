@@ -69,7 +69,7 @@ describe('createGroup.execute() error handling — Bug #6 Regression', () => {
         expect(result.content[0]?.text).toContain('Validation failed');
     });
 
-    it('returns isError for unknown fields (strict schema)', async () => {
+    it('unknown fields are silently stripped (consumer schema policy respected)', async () => {
         const group = createGroup({
             name: 'tasks',
             actions: {
@@ -80,13 +80,13 @@ describe('createGroup.execute() error handling — Bug #6 Regression', () => {
             },
         });
 
-        // Extra unknown field should fail strict validation
+        // Unknown fields are stripped by Zod's default policy
         const result = await group.execute(undefined as never, 'create', {
             title: 'Buy milk',
             extraField: 'should not be here',
         });
-        expect(result.isError).toBe(true);
-        expect(result.content[0]?.text).toContain('Validation failed');
+        expect(result.isError).toBeUndefined();
+        expect(result.content[0]?.text).toContain('Buy milk');
     });
 
     it('successful execution still returns normal ToolResponse', async () => {

@@ -129,8 +129,16 @@ export function defineMiddleware<
     const toMiddlewareFn = (): MiddlewareFn<TContextIn> => {
         return async (ctx, args, next) => {
             const derived = await derive(ctx);
-            // Merge derived properties into ctx (mutate for zero-alloc)
-            Object.assign(ctx as Record<string, unknown>, derived);
+            // Merge derived properties into ctx for downstream propagation.
+            // Uses explicit loop instead of Object.assign to guard against
+            // __proto__ injection from untrusted derive functions.
+            // ⚠️  contextFactory MUST return a fresh object per invocation
+            // to prevent cross-call property leakage in parallel scenarios.
+            for (const [key, value] of Object.entries(derived as Record<string, unknown>)) {
+                if (key !== '__proto__') {
+                    (ctx as Record<string, unknown>)[key] = value;
+                }
+            }
             return next();
         };
     };

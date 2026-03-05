@@ -378,7 +378,7 @@ export function toolError(code: ErrorCode, options: ToolErrorOptions): ToolRespo
         parts.push('</details>');
     }
 
-    if (options.retryAfter !== undefined) {
+    if (options.retryAfter !== undefined && Number.isFinite(options.retryAfter) && options.retryAfter > 0) {
         parts.push(`<retry_after>${options.retryAfter} seconds</retry_after>`);
     }
 

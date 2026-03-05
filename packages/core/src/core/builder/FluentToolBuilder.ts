@@ -691,15 +691,17 @@ export class FluentToolBuilder<
 
             // Auto-wrap non-ToolResponse results (implicit success)
             // Check for MCP ToolResponse shape: { content: [{ type: 'text', text: string }] }
-            // We verify content[0].type === 'text' to avoid false positives
-            // when handler returns data that happens to have a `content` array field.
+            // We verify content[0].type === 'text' AND that the object has no extra
+            // properties beyond 'content'/'isError' to avoid false positives when a
+            // domain object happens to have a coincidental `content` array field.
             if (
                 typeof result === 'object' &&
                 result !== null &&
                 'content' in result &&
                 Array.isArray((result as { content: unknown }).content) &&
                 (result as { content: Array<{ type?: unknown }> }).content.length > 0 &&
-                (result as { content: Array<{ type?: unknown }> }).content[0]?.type === 'text'
+                (result as { content: Array<{ type?: unknown }> }).content[0]?.type === 'text' &&
+                Object.keys(result).every(k => k === 'content' || k === 'isError')
             ) {
                 return result as ToolResponse;
             }

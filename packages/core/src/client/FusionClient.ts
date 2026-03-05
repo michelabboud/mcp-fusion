@@ -469,6 +469,7 @@ export function createFusionClient<TRouter extends RouterMap>(
 
         if (throwOnError && result.isError) {
             const text = result.content
+                .filter(c => c.type === 'text')
                 .map(c => c.text)
                 .join('\n');
 

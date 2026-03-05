@@ -137,6 +137,20 @@ export function applyEgressGuard(
         }
     }
 
+    // If blocks were skipped (remainingBytes exhausted exactly at a block
+    // boundary), append the truncation suffix so the LLM knows content
+    // was removed. Without this, the response looks deceptively complete.
+    const allBlocksIncluded = truncatedContent.length === response.content.length;
+    if (!allBlocksIncluded && truncatedContent.length > 0) {
+        const last = truncatedContent[truncatedContent.length - 1]!;
+        if (!last.text.endsWith(suffix.trim())) {
+            truncatedContent[truncatedContent.length - 1] = {
+                type: 'text',
+                text: last.text + suffix,
+            };
+        }
+    }
+
     // Ensure at least one content block exists
     if (truncatedContent.length === 0) {
         truncatedContent.push({ type: 'text', text: suffix.trim() });

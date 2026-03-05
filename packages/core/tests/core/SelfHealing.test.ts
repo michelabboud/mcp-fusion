@@ -65,12 +65,12 @@ describe('toolError() — Enhanced features', () => {
         expect(result.content[0].text).not.toContain('<details>');
     });
 
-    it('should handle retryAfter of 0 seconds', () => {
+    it('should omit retryAfter when value is 0 (not a valid interval)', () => {
         const result = toolError('RATE_LIMITED', {
             message: 'Retry immediately.',
             retryAfter: 0,
         });
-        expect(result.content[0].text).toContain('<retry_after>0 seconds</retry_after>');
+        expect(result.content[0].text).not.toContain('<retry_after>');
     });
 
     it('should handle empty availableActions array', () => {

@@ -95,7 +95,7 @@ export class ResponseBuilder {
     /** @internal Use {@link response} factory instead */
     constructor(data: string | object, compiledStringify?: StringifyFn) {
         this._data = typeof data === 'string'
-            ? (data || 'OK')
+            ? (data.length > 0 ? data : 'OK')
             : (compiledStringify ? compiledStringify(data) : JSON.stringify(data, null, 2));
     }
 

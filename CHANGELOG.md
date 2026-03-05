@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.10] - 2026-03-05
+
+### Fixed
+
+- **`.strict()` overrides consumer's unknown-keys policy in `createGroup` (Bug #24)** — Pre-computed `strictSchemaMap` unconditionally applied `.strict()` to all action schemas, overriding the consumer's choice of `.passthrough()` or `.strip()`. Fixed by removing `strictSchemaMap` and using the consumer's original schema from `schemaMap` directly.
+
+- **`retryAfter` not validated for finite/positive values in `toolError` (Bug #25)** — `retryAfter` accepted `NaN`, `Infinity`, `-1`, and `0`, producing invalid XML like `<retry_after>NaN seconds</retry_after>`. Fixed by gating the tag emission with `Number.isFinite(retryAfter) && retryAfter > 0`.
+
+- **`FusionClient` error text includes `"undefined"` for non-text content (Bug #26)** — `.map(c => c.text)` produced `undefined` for image/resource content blocks. Fixed by adding `.filter(c => c.type === 'text')` before `.map()` in `executeInternal()`.
+
+- **`EgressGuard` missing truncation suffix at exact byte boundary (Bug #27)** — When a content block consumed exactly all remaining bytes, subsequent blocks were silently skipped without appending the truncation suffix. The response appeared complete to the LLM despite missing content. Fixed by checking after the loop whether blocks were skipped and appending the suffix to the last block.
+
+- **`ContextDerivation` prototype pollution via `Object.assign` (Bug #28)** — `Object.assign(ctx, derived)` blindly copied all properties including `__proto__`. Replaced with explicit `Object.entries` loop that skips `__proto__` keys. Added documentation warning that `contextFactory` must return a new object per invocation to prevent cross-call property leakage.
+
+- **Duck-type check false positive for domain objects with `content` array (Bug #29)** — The ToolResponse detection check only verified `content[0]?.type === 'text'`, allowing domain objects with a coincidental `content` array to bypass `success()` wrapping and the Presenter layer. Fixed by adding `Object.keys(result).every(k => k === 'content' || k === 'isError')` to reject objects with extra properties.
+
+- **`ResponseBuilder` uses implicit falsy check for empty string (Bug #30)** — `data || 'OK'` relied on JavaScript's falsy semantics. Replaced with `data.length > 0 ? data : 'OK'` for explicit intent and to avoid confusion with the short-circuit pattern.
+
 ## [3.1.9] - 2026-03-05
 
 ### Fixed

@@ -195,12 +195,6 @@ export function createGroup<TContext = void>(config: GroupConfig<TContext>): Com
         }
     }
 
-    // Pre-compute strict schemas at creation time (avoids re-allocation per call)
-    const strictSchemaMap = new Map<string, ZodObject<ZodRawShape>>();
-    for (const [name, schema] of schemaMap) {
-        strictSchemaMap.set(name, schema.strict() as ZodObject<ZodRawShape>);
-    }
-
     const execute = async (ctx: TContext, action: string, args: Record<string, unknown>): Promise<ToolResponse> => {
         const chain = dispatchMap.get(action);
         if (!chain) {
@@ -211,8 +205,10 @@ export function createGroup<TContext = void>(config: GroupConfig<TContext>): Com
         }
 
         // Validate with Zod if schema is defined — use safeParse to return
-        // ToolResponse instead of throwing ZodError (contract compliance)
-        const schema = strictSchemaMap.get(action);
+        // ToolResponse instead of throwing ZodError (contract compliance).
+        // Uses the consumer's schema as-is to respect their unknown-keys policy
+        // (.passthrough(), .strip(), or .strict()).
+        const schema = schemaMap.get(action);
         if (schema) {
             const result = schema.safeParse(args);
             if (!result.success) {
