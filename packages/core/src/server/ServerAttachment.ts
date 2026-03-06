@@ -32,7 +32,7 @@ import { computeServerDigest } from '../introspection/BehaviorDigest.js';
 import { type ToolExposition } from '../exposition/types.js';
 import { compileExposition, type FlatRoute, type ExpositionResult } from '../exposition/ExpositionCompiler.js';
 import { type PromptRegistry, type PromptFilter } from '../prompt/PromptRegistry.js';
-import { StateMachineGate, type FsmStateStore } from '../fsm/StateMachineGate.js';
+import { StateMachineGate, type FsmStateStore, type FsmSnapshot } from '../fsm/StateMachineGate.js';
 import type { TelemetrySink } from '../observability/TelemetryEvent.js';
 
 // ── Types ────────────────────────────────────────────────
@@ -416,7 +416,7 @@ interface HandlerContext<TContext> {
     readonly fsm?: StateMachineGate;
     readonly fsmStore?: FsmStateStore;
     /** In-memory FSM snapshot store for non-serverless transports without fsmStore (Bug #77 fix). */
-    readonly fsmMemorySnapshots?: Map<string, unknown>;
+    readonly fsmMemorySnapshots?: Map<string, FsmSnapshot>;
     readonly notifyToolListChanged?: () => void;
     readonly telemetry?: TelemetrySink;
     readonly selfHealing?: SelfHealingConfig;
@@ -841,7 +841,7 @@ export async function attachToServer<TContext>(
         ...(fsm ? { fsm } : {}),
         ...(fsmStore ? { fsmStore } : {}),
         // Bug #77 fix: in-memory FSM snapshot store when no external fsmStore
-        ...(fsm && !fsmStore ? { fsmMemorySnapshots: new Map<string, unknown>() } : {}),
+        ...(fsm && !fsmStore ? { fsmMemorySnapshots: new Map<string, FsmSnapshot>() } : {}),
         ...(notifyToolListChanged ? { notifyToolListChanged } : {}),
         ...(options.telemetry ? { telemetry: options.telemetry } : {}),
         ...(selfHealing ? { selfHealing } : {}),

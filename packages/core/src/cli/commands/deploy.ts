@@ -16,7 +16,7 @@ import { createRequire } from 'node:module';
 import type { CliArgs } from '../args.js';
 import { ProgressTracker } from '../progress.js';
 import { ansi, VINKIUS_CLOUD_URL } from '../constants.js';
-import { inferServerEntry } from '../utils.js';
+import { ask, inferServerEntry } from '../utils.js';
 import { loadEnv, readFusionRc } from '../rc.js';
 
 // ── Edge Stub Aliases ────────────────────────────────────────────────────────
@@ -98,10 +98,21 @@ export async function commandDeploy(args: CliArgs): Promise<void> {
     } catch {
         // Auto-install esbuild — zero friction
         progress.done('bundle', 'Bundling with esbuild');
+
+        // Ask user before auto-installing to avoid silent supply-chain modifications
+        const { createInterface } = await import('node:readline');
+        const rl = createInterface({ input: process.stdin, output: process.stderr });
+        const answer = await ask(rl, 'esbuild is not installed. Install it now?', 'yes');
+        rl.close();
+        if (answer !== 'yes' && answer !== 'y') {
+            process.stderr.write('\n  Aborted. Install manually: npm install -D esbuild\n\n');
+            process.exit(1);
+        }
+
         progress.start('bundle', 'Installing esbuild');
         try {
             const { execSync } = await import('node:child_process');
-            execSync('npm install -D esbuild', { cwd, stdio: 'ignore' });
+            execSync('npm install -D esbuild', { cwd, stdio: 'pipe' });
             esbuild = await import('esbuild');
         } catch {
             progress.fail('bundle', 'Installing esbuild', 'failed to install — run: npm install -D esbuild');
@@ -181,7 +192,15 @@ export async function commandDeploy(args: CliArgs): Promise<void> {
 
     // ── Step 6: upload ──
     progress.start('upload', 'Deploying to Edge');
-    const url = `${remote.replace(/\/+$/, '')}/servers/${serverId}/deploy`;
+
+    // Validate serverId to prevent path-traversal attacks
+    const SAFE_ID = /^[a-zA-Z0-9_-]+$/;
+    if (!SAFE_ID.test(serverId)) {
+        progress.fail('upload', 'Deploying to Edge', `invalid server ID: ${serverId} — expected alphanumeric/dash/underscore`);
+        process.exit(1);
+    }
+
+    const url = `${remote.replace(/\/+$/, '')}/servers/${encodeURIComponent(serverId)}/deploy`;
 
     let res: Response;
     try {

@@ -167,6 +167,16 @@ export interface FusionClientOptions {
      * @default false
      */
     throwOnError?: boolean;
+
+    /**
+     * Key used as the discriminator when calling grouped tools.
+     *
+     * Must match the discriminator key configured on the server
+     * (e.g. `group.discriminator('command')`).
+     *
+     * @default 'action'
+     */
+    discriminatorKey?: string;
 }
 
 // ============================================================================
@@ -441,6 +451,7 @@ export function createFusionClient<TRouter extends RouterMap>(
     options?: FusionClientOptions,
 ): FusionClient<TRouter> {
     const throwOnError = options?.throwOnError ?? false;
+    const discriminatorKey = options?.discriminatorKey ?? 'action';
 
     /** Terminal function: builds the MCP call from the dotted action path */
     function terminalCall(action: string, args: Record<string, unknown>): Promise<ToolResponse> {
@@ -454,7 +465,7 @@ export function createFusionClient<TRouter extends RouterMap>(
 
         return transport.callTool(toolName, {
             ...args,
-            action: actionName,
+            [discriminatorKey]: actionName,
         });
     }
 

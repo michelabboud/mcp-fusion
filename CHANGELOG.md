@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.20] - 2026-03-06
+
+### Fixed
+
+- SSE server template now wraps the async HTTP handler body in `try/catch` — previously, a rejected promise from `server.connect()` or `transport.handlePostMessage()` would crash the generated server with an unhandled rejection
+- `scaffold()` now cleans up the target directory when a write operation fails mid-way (e.g. permission denied, disk full) — partially-written project files are removed instead of left as broken orphans
+- `fusion deploy` now prompts for user confirmation before auto-installing `esbuild` — previously ran `npm install -D esbuild` silently with `stdio: 'ignore'`, modifying `package.json` without consent
+- `fusion deploy` now validates `serverId` format against `[a-zA-Z0-9_-]+` and applies `encodeURIComponent` — previously, a malicious `.fusionrc` with `serverId: "../../admin/nuke"` could traverse the API path
+- `FusionClient` now accepts a `discriminatorKey` option (defaults to `'action'`) — previously hard-coded `action` as the key, breaking grouped tool calls when the server uses a custom discriminator like `.discriminator('command')`
+
 ## [3.1.19] - 2026-03-06
 
 ### Fixed

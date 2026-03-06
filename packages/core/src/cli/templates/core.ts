@@ -129,22 +129,27 @@ const PORT = Number(process.env['PORT'] ?? 3001);
 const transports = new Map<string, SSEServerTransport>();
 
 const httpServer = createServer(async (req, res) => {
-    if (req.method === 'GET' && req.url === '/sse') {
-        const sseTransport = new SSEServerTransport('/mcp/messages', res);
-        transports.set(sseTransport.sessionId, sseTransport);
-        res.on('close', () => transports.delete(sseTransport.sessionId));
-        await server.connect(sseTransport);
-    } else if (req.method === 'POST' && req.url?.startsWith('/mcp/messages')) {
-        const url = new URL(req.url, \`http://localhost:\${PORT}\`);
-        const sessionId = url.searchParams.get('sessionId') ?? '';
-        const transport = transports.get(sessionId);
-        if (transport) {
-            await transport.handlePostMessage(req, res);
+    try {
+        if (req.method === 'GET' && req.url === '/sse') {
+            const sseTransport = new SSEServerTransport('/mcp/messages', res);
+            transports.set(sseTransport.sessionId, sseTransport);
+            res.on('close', () => transports.delete(sseTransport.sessionId));
+            await server.connect(sseTransport);
+        } else if (req.method === 'POST' && req.url?.startsWith('/mcp/messages')) {
+            const url = new URL(req.url, \`http://localhost:\${PORT}\`);
+            const sessionId = url.searchParams.get('sessionId') ?? '';
+            const transport = transports.get(sessionId);
+            if (transport) {
+                await transport.handlePostMessage(req, res);
+            } else {
+                res.writeHead(400).end('Unknown session');
+            }
         } else {
-            res.writeHead(400).end('Unknown session');
+            res.writeHead(404).end();
         }
-    } else {
-        res.writeHead(404).end();
+    } catch (err) {
+        console.error('[MCP Fusion] Unhandled error in HTTP handler:', err);
+        if (!res.headersSent) res.writeHead(500).end();
     }
 });
 

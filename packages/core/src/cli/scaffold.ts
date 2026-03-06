@@ -7,7 +7,7 @@
  *
  * @module
  */
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import type { ProjectConfig } from './types.js';
 import * as tpl from './templates/index.js';
@@ -31,11 +31,17 @@ interface ScaffoldFile {
 export function scaffold(targetDir: string, config: ProjectConfig): string[] {
     const files = buildFileList(config);
 
-    for (const file of files) {
-        const fullPath = join(targetDir, file.path);
-        const dir = dirname(fullPath);
-        mkdirSync(dir, { recursive: true });
-        writeFileSync(fullPath, file.content, 'utf-8');
+    try {
+        for (const file of files) {
+            const fullPath = join(targetDir, file.path);
+            const dir = dirname(fullPath);
+            mkdirSync(dir, { recursive: true });
+            writeFileSync(fullPath, file.content, 'utf-8');
+        }
+    } catch (err) {
+        // Clean up partially-written project to avoid orphaned files
+        try { rmSync(targetDir, { recursive: true, force: true }); } catch { /* best effort */ }
+        throw err;
     }
 
     return files.map(f => f.path);
