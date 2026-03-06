@@ -395,8 +395,14 @@ export class FluentToolBuilder<
         // Convert the fluent middleware signature to the standard MiddlewareFn
         const standardMw: MiddlewareFn<TContext> = async (ctx, args, next) => {
             const wrappedNext = async (enrichedCtx: unknown): Promise<ToolResponse> => {
-                // Merge enriched properties into context
-                Object.assign(ctx as Record<string, unknown>, enrichedCtx as Record<string, unknown>);
+                // Bug #78 fix: sanitize enriched context before merging
+                // to prevent prototype pollution via __proto__/constructor/prototype keys.
+                const safe = enrichedCtx as Record<string, unknown>;
+                const target = ctx as Record<string, unknown>;
+                for (const key of Object.keys(safe)) {
+                    if (key === '__proto__' || key === 'constructor' || key === 'prototype') continue;
+                    target[key] = safe[key];
+                }
                 return next() as Promise<ToolResponse>;
             };
             return inlineMw({ ctx: ctx as unknown as TCtx, next: wrappedNext as never }) as Promise<ToolResponse>;

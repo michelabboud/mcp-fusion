@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.19] - 2026-03-06
+
+### Fixed
+
+- CLI entry-point guard now handles Windows shim extensions (`.cmd`, `.ps1`, `.cjs`, `.mjs`, `.exe`) — previously `main()` was silently skipped when invoked via npx/pnpm/yarn on Windows
+- `fusion dev` reload now resolves the new registry before clearing the old one — if resolution fails (e.g. syntax error in user code), existing tools remain available instead of vanishing
+- `fusion deploy` now warns when the deploy token would be sent over plaintext HTTP, adds a 60-second fetch timeout, and wraps `res.json()` in try/catch for non-JSON responses
+- FSM state gate now clones per-request even without an external `fsmStore` — concurrent SSE/stdio clients no longer share and mutate the same FSM instance, preventing cross-session workflow corruption
+- `FluentToolBuilder` inline `.use()` middleware no longer merges enriched context via `Object.assign` — dangerous keys (`__proto__`, `constructor`, `prototype`) are now filtered to prevent prototype pollution
+
 ## [3.1.18] - 2026-03-05
 
 ### Fixed

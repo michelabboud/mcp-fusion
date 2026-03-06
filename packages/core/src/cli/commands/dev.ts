@@ -42,18 +42,22 @@ export async function commandDev(args: CliArgs, reporter?: ProgressReporter): Pr
     const devServer = createDevServer({
         dir: watchDir,
         setup: async (reg) => {
-            if ('clear' in reg && typeof (reg as { clear: unknown }).clear === 'function') {
-                (reg as { clear: () => void }).clear();
-            }
-
+            // Bug #75 fix: resolve NEW registry first, only clear+register on success.
+            // If resolveRegistry throws (syntax error in user code), the
+            // current tools remain available until the next successful reload.
+            let resolved: Awaited<ReturnType<typeof resolveRegistry>>;
             try {
-                const resolved = await resolveRegistry(serverEntry);
-                for (const builder of resolved.registry.getBuilders()) {
-                    reg.register(builder);
-                }
+                resolved = await resolveRegistry(serverEntry);
             } catch (err) {
                 const message = err instanceof Error ? err.message : String(err);
                 throw new Error(`Failed to reload: ${message}`);
+            }
+
+            if ('clear' in reg && typeof (reg as { clear: unknown }).clear === 'function') {
+                (reg as { clear: () => void }).clear();
+            }
+            for (const builder of resolved.registry.getBuilders()) {
+                reg.register(builder);
             }
         },
     });

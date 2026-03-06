@@ -415,6 +415,8 @@ interface HandlerContext<TContext> {
     readonly isFlat: boolean;
     readonly fsm?: StateMachineGate;
     readonly fsmStore?: FsmStateStore;
+    /** In-memory FSM snapshot store for non-serverless transports without fsmStore (Bug #77 fix). */
+    readonly fsmMemorySnapshots?: Map<string, unknown>;
     readonly notifyToolListChanged?: () => void;
     readonly telemetry?: TelemetrySink;
     readonly selfHealing?: SelfHealingConfig;
@@ -453,15 +455,21 @@ function propagateObservability<TContext>(
  */
 function createToolListHandler<TContext>(hCtx: HandlerContext<TContext>) {
     return async (_request: unknown, extra: unknown) => {
-        // Per-request FSM clone for serverless isolation (Bug #3 fix).
-        // When fsmStore is present, concurrent requests each get their
-        // own gate clone so restore/transition/save never interleave.
+        // Per-request FSM clone for serverless isolation (Bug #3 + Bug #77 fix).
+        // Always clone the FSM so concurrent requests never share mutable state.
         let fsm = hCtx.fsm;
-        if (fsm && hCtx.fsmStore) {
+        if (fsm) {
             fsm = fsm.clone();
-            const sessionId = extractSessionId(extra) ?? '__default__';
-            const snap = await hCtx.fsmStore.load(sessionId);
-            if (snap) fsm.restore(snap);
+            if (hCtx.fsmStore) {
+                const sessionId = extractSessionId(extra) ?? '__default__';
+                const snap = await hCtx.fsmStore.load(sessionId);
+                if (snap) fsm.restore(snap);
+            } else {
+                // In-memory fallback: restore from session-scoped snapshot
+                const sessionId = extractSessionId(extra) ?? '__default__';
+                const snap = hCtx.fsmMemorySnapshots?.get(sessionId);
+                if (snap) fsm.restore(snap);
+            }
         }
 
         let tools: McpTool[];
@@ -516,13 +524,19 @@ function createToolCallHandler<TContext>(hCtx: HandlerContext<TContext>) {
         const action = flatRoute ? flatRoute.actionKey : name;
         emit?.({ type: 'route', tool: toolGroup, action, args, timestamp: Date.now() } as any);
 
-        // Per-request FSM clone for serverless isolation (Bug #3 fix).
+        // Per-request FSM clone for serverless isolation (Bug #3 + Bug #77 fix).
         let fsm = hCtx.fsm;
-        if (fsm && hCtx.fsmStore) {
+        if (fsm) {
             fsm = fsm.clone();
-            const sessionId = extractSessionId(extra) ?? '__default__';
-            const snap = await hCtx.fsmStore.load(sessionId);
-            if (snap) fsm.restore(snap);
+            if (hCtx.fsmStore) {
+                const sessionId = extractSessionId(extra) ?? '__default__';
+                const snap = await hCtx.fsmStore.load(sessionId);
+                if (snap) fsm.restore(snap);
+            } else {
+                const sessionId = extractSessionId(extra) ?? '__default__';
+                const snap = hCtx.fsmMemorySnapshots?.get(sessionId);
+                if (snap) fsm.restore(snap);
+            }
         }
 
         let result: ToolResponse;
@@ -590,6 +604,10 @@ function createToolCallHandler<TContext>(hCtx: HandlerContext<TContext>) {
                     if (hCtx.fsmStore) {
                         const sessionId = extractSessionId(extra) ?? '__default__';
                         await hCtx.fsmStore.save(sessionId, fsm.snapshot());
+                    } else if (hCtx.fsmMemorySnapshots) {
+                        // Bug #77 fix: persist to in-memory session map
+                        const sessionId = extractSessionId(extra) ?? '__default__';
+                        hCtx.fsmMemorySnapshots.set(sessionId, fsm.snapshot());
                     }
                     // Notify client to re-fetch tools/list
                     hCtx.notifyToolListChanged?.();
@@ -822,6 +840,8 @@ export async function attachToServer<TContext>(
         ),
         ...(fsm ? { fsm } : {}),
         ...(fsmStore ? { fsmStore } : {}),
+        // Bug #77 fix: in-memory FSM snapshot store when no external fsmStore
+        ...(fsm && !fsmStore ? { fsmMemorySnapshots: new Map<string, unknown>() } : {}),
         ...(notifyToolListChanged ? { notifyToolListChanged } : {}),
         ...(options.telemetry ? { telemetry: options.telemetry } : {}),
         ...(selfHealing ? { selfHealing } : {}),

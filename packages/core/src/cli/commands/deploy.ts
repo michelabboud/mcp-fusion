@@ -53,6 +53,19 @@ export async function commandDeploy(args: CliArgs): Promise<void> {
     const serverId = rc.serverId;
     const token = args.token ?? process.env['FUSION_DEPLOY_TOKEN'];
 
+    // Bug #76 fix: warn when token would be sent over plaintext HTTP
+    if (token && remote) {
+        try {
+            const remoteUrl = new URL(remote);
+            if (remoteUrl.protocol === 'http:' && remoteUrl.hostname !== 'localhost' && remoteUrl.hostname !== '127.0.0.1') {
+                process.stderr.write(
+                    `\n  ${ansi.yellow('⚠')} Warning: deploy token will be sent over plaintext HTTP to ${remote}\n` +
+                    `  ${ansi.dim('Use https:// or set --allow-insecure to suppress this warning.')}\n\n`,
+                );
+            }
+        } catch { /* non-URL remote — fetch will fail later with a clear error */ }
+    }
+
     if (!serverId) {
         progress.fail('read-config', 'Reading configuration', 'run: fusion remote --server-id <uuid>');
         process.exit(1);
@@ -184,6 +197,7 @@ export async function commandDeploy(args: CliArgs): Promise<void> {
                 hash,
                 raw_size: rawSizeBytes,
             }),
+            signal: AbortSignal.timeout(60_000),
         });
     } catch (netErr: unknown) {
         const msg = netErr instanceof Error ? netErr.message : String(netErr);
@@ -221,7 +235,7 @@ export async function commandDeploy(args: CliArgs): Promise<void> {
         process.exit(1);
     }
 
-    const data = await res.json() as {
+    let data: {
         status: string;
         deployment_id: string;
         server_id: string;
@@ -229,6 +243,12 @@ export async function commandDeploy(args: CliArgs): Promise<void> {
         url: string;
         message: string;
     };
+    try {
+        data = await res.json() as typeof data;
+    } catch {
+        progress.fail('upload', 'Deploying to Edge', 'unexpected non-JSON response from API');
+        process.exit(1);
+    }
 
     progress.done('upload', 'Deploying to Edge');
 

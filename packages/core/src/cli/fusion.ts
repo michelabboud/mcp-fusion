@@ -80,11 +80,15 @@ async function main(): Promise<void> {
     }
 }
 
-/* c8 ignore next 6 — CLI entry-point guard */
-const isCLI =
-    typeof process !== 'undefined' &&
-    (process.argv[1]?.endsWith('fusion') || process.argv[1]?.endsWith('fusion.js'));
-if (isCLI) {
+/* c8 ignore next 9 — CLI entry-point guard */
+function detectCLI(): boolean {
+    if (typeof process === 'undefined' || !process.argv[1]) return false;
+    const base = process.argv[1].replace(/\\/g, '/').split('/').pop() ?? '';
+    // Strip extension (.js, .cjs, .mjs, .cmd, .ps1, .exe, etc.)
+    const name = base.replace(/\.[a-z0-9]+$/i, '');
+    return name === 'fusion';
+}
+if (detectCLI()) {
     main().catch((err: Error) => {
         console.error(`Error: ${err.message}`);
         process.exit(1);
