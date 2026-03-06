@@ -94,10 +94,10 @@ export class FusionTester<TContext> {
             ? { ...baseContext, ...overrideContext } as TContext
             : baseContext;
 
-        // 2. Build args with discriminator
+        // 2. Build args with discriminator (action AFTER spread to prevent override)
         const builtArgs: Record<string, unknown> = {
-            action: actionName,
             ...(args || {}),
+            action: actionName,
         };
 
         // 3. Run the REAL pipeline (validation → middleware → handler → presenter → egress)

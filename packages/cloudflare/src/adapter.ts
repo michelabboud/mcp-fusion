@@ -250,10 +250,13 @@ export function cloudflareWorkersAdapter<TEnv = unknown, TContext = void>(
             await server.connect(transport);
 
             try {
-                return await transport.handleRequest(request);
-            } finally {
-                // Cleanup — release resources
-                await server.close();
+                const response = await transport.handleRequest(request);
+                // Cleanup via waitUntil — non-blocking, does not delay response
+                ctx.waitUntil(server.close().catch(() => {}));
+                return response;
+            } catch (err) {
+                ctx.waitUntil(server.close().catch(() => {}));
+                throw err;
             }
         },
     };

@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.23] - 2026-03-06
+
+### Fixed
+
+- `.env` parser (`loadEnv`) now strips inline comments (`KEY=value # comment` → `value`) for unquoted values and only removes matching quote pairs — previously inline `#` was kept verbatim and mismatched quotes (e.g. `'bar"`) were independently stripped
+- `MCP_FUSION_VERSION` now reads from `package.json` at runtime via `createRequire` — previously hardcoded as `'1.1.0'`, causing stale version in CLI output and lockfile digests
+- `FusionTester.callAction()` now places the discriminator (`action`) **after** the user-provided args spread — previously placed it before, allowing user args `{ action: 'override' }` to shadow the programmatic discriminator
+- Inspector `Simulator` now emits exactly **one** `execute` event per pipeline — previously emitted an unconditional first `execute` plus a second inside the if/else branches, doubling `callCount` and live-traffic entries
+- `autoDiscover` `walkDir()` now sorts directory entries alphabetically via `localeCompare` — previously returned files in filesystem-dependent order, causing non-deterministic tool registration across OS/deploys
+- Cloudflare adapter now uses `ctx.waitUntil(server.close())` for non-blocking cleanup — previously used `finally { await server.close() }`, which delayed every response until cleanup completed
+
 ## [3.1.22] - 2026-03-06
 
 ### Fixed

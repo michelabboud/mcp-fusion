@@ -54,3 +54,5 @@ docs/.vitepress/.temp/
 lint.json
 lint.txt
 lint_report.txt
+
+BUGS*.md

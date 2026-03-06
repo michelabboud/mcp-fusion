@@ -23,7 +23,15 @@ export function loadEnv(cwd: string): void {
             const eq = trimmed.indexOf('=');
             if (eq === -1) continue;
             const key = trimmed.slice(0, eq).trim();
-            const val = trimmed.slice(eq + 1).trim().replace(/^["']|["']$/g, '');
+            let val = trimmed.slice(eq + 1).trim();
+            // Strip matching quote pairs only (e.g. 'value' or "value", not 'bar")
+            const quoteMatch = val.match(/^(["'])(.*?)\1$/);
+            if (quoteMatch) {
+                val = quoteMatch[2] ?? '';
+            } else {
+                // Strip inline comments only for unquoted values
+                val = val.replace(/\s+#.*$/, '');
+            }
             if (!process.env[key]) process.env[key] = val;
         }
     } catch { /* No .env file — env vars may be set directly (CI/CD) */ }

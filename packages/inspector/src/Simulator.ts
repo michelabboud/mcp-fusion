@@ -242,17 +242,17 @@ function emitFullPipeline(bus: TelemetryBusInstance): void {
             setTimeout(() => {
                 const isError = randomBool(0.08);
                 const totalDuration = vDelay + mDelay + xDelay;
-                bus.emit({
-                    type: 'execute',
-                    tool: tool.name,
-                    action,
-                    durationMs: totalDuration,
-                    isError,
-                    traceId,
-                    timestamp: now + totalDuration,
-                } as TelemetryEvent);
 
                 if (isError) {
+                    bus.emit({
+                        type: 'execute',
+                        tool: tool.name,
+                        action,
+                        durationMs: totalDuration,
+                        isError: true,
+                        traceId,
+                        timestamp: now + totalDuration,
+                    } as TelemetryEvent);
                     const errData = randomItem(FAKE_ERRORS);
                     bus.emit({
                         type: 'error',

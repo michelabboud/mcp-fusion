@@ -2,6 +2,7 @@
  * CLI constants — version, help text, ANSI styling.
  * @module
  */
+import { createRequire } from 'node:module';
 import { LOCKFILE_NAME } from '../introspection/CapabilityLockfile.js';
 
 // ─── ANSI Styling (zero dependencies) ────────────────────────────
@@ -20,7 +21,11 @@ export const ansi = {
 // ─── Version ─────────────────────────────────────────────────────
 
 /** @internal exported for testing */
-export const MCP_FUSION_VERSION = '1.1.0';
+const _require = createRequire(import.meta.url);
+export const MCP_FUSION_VERSION: string = (() => {
+    try { return (_require('../../package.json') as { version: string }).version; }
+    catch { return '0.0.0'; }
+})();
 
 /** Default API endpoint — Vinkius Cloud production */
 export const VINKIUS_CLOUD_URL = 'https://cloud.vinkius.com';

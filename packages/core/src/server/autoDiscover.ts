@@ -119,6 +119,7 @@ const EXCLUDED_PATTERN = /\.(test|spec|d)\./;
  */
 async function walkDir(dir: string, pattern: RegExp, recursive: boolean): Promise<string[]> {
     const entries = await fs.readdir(dir, { withFileTypes: true });
+    entries.sort((a, b) => a.name.localeCompare(b.name));
     const files: string[] = [];
 
     for (const entry of entries) {
